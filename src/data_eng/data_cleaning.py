@@ -37,17 +37,22 @@ def gameLog_csv_filter(rawPath, procesedPath):
     gameLog_df = pd.read_csv(rawPath)
 
 
-    campos_relevantes = ["Team_ID", "Game_ID", "GAME_DATE","MATCHUP","WL","FGM","FGA","FG_PCT","FG3M","FG3_PCT","FTM", "FTA", "FT_PCT", "OREB", "DREB", "AST","STL","BLK","PF","PTS"]
+    campos_relevantes = ["Team_ID", "Game_ID", "GAME_DATE","MATCHUP","WL","FGM","FGA","FG_PCT","FG3M","FG3_PCT","FTM", "FTA", "FT_PCT", "OREB", "DREB", "AST","STL","BLK","PF","PTS","TOV"]
 
     gameLog_df = gameLog_df[campos_relevantes]
 
     gameLog_df["GAME_DATE"] = pd.to_datetime(gameLog_df["GAME_DATE"])
-    print(gameLog_df.columns.tolist())
     gameLog_df.columns = gameLog_df.columns.str.strip()
-    campos_numericos = ["FGM", "FGA", "FG_PCT", "FG3M", "FG3_PCT", "FTM", "FTA", "FT_PCT", "OREB", "DREB", "AST", "STL", "BLK", "PF", "PTS"]
+    campos_numericos = ["FGM", "FGA", "FG_PCT", "FG3M", "FG3_PCT", "FTM", "FTA", "FT_PCT", "OREB", "DREB", "AST", "STL", "BLK", "PF", "PTS", "TOV"]
+
+    print(gameLog_df.columns.tolist())
+    print(campos_numericos)
+
     gameLog_df[campos_numericos] = gameLog_df[campos_numericos].apply(pd.to_numeric,errors = "coerce")
     gameLog_df = GameID_Agrupation(gameLog_df)
+    print("data frame despues de la agrupacion :", gameLog_df.head())
     gameLog_df = final_stats_validation(gameLog_df)
+    print("data frame despues de la validacion :", gameLog_df.head())
 
     final_csv = gameLog_df.to_csv(procesedPath,index=False)
 
@@ -83,7 +88,7 @@ def TeamStatistics_csv_filter(rawPath, procesedPath):
 
     final_df = treatment_statistics_df[campos_iniciales]
     final_df[campos_numericos] = final_df[campos_numericos].apply(pd.to_numeric,errors = "coerce")
-    final_df = final_df.drop_duplicates(subset = ["TEAM_ID"])
+    final_df = final_df.drop_duplicates(subset = ["Team_ID"])
 
     final_csv = final_df.to_csv(procesedPath,index=False)
     
@@ -93,7 +98,7 @@ def TeamStatistics_csv_filter(rawPath, procesedPath):
 
 def GameID_Agrupation(gameLog_df):
 
-    gameLog_groupby = gameLog_df.groupby("GAME_ID")
+    gameLog_groupby = gameLog_df.groupby("Game_ID")
     rows = []
 
     for game_id, teams in gameLog_groupby:
@@ -128,6 +133,14 @@ def GameID_Agrupation(gameLog_df):
                     "Local_PF": home["PF"],
                     "Visitor_PTS": away["PTS"],
                     "Local_PTS": home["PTS"],
+                    "Local_FGA": home["FGA"],
+                    "Visitor_FGA": away["FGA"],
+                    "Local_TOV": home["TOV"],
+                    "Visitor_TOV": away["TOV"],
+                    "Local_FGM": home["FGM"],
+                    "Visitor_FGM": away["FGM"],
+                    "Local_FTA": home["FTA"],
+                    "Visitor_FTA": away["FTA"],
                 }
             )
 
