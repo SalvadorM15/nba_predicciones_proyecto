@@ -8,8 +8,8 @@ seasons = [
     "2024-25"
 ]
 gameLog_df = dc.fetch_teams_gameLogs(seasons)
-clean_gameLog_df = dCl.gameLog_csv_filter("data/raw_data/all_teams_gamelogs.csv","data/procesed_data/gamelogs_clean.csv")
-featured_gameLog_df = eng.GameLog_features(20,"data/procesed_data/gamelogs_clean.csv",eng.Get_Id_by_Name("Los Angeles Lakers"),eng.Get_Id_by_Name("Golden State Warriors"))
+clean_gameLog_df = dCl.gameLog_csv_filter("../data/raw_data/all_teams_gamelogs.csv","../data/procesed_data/gamelogs_clean.csv")
+featured_gameLog_df = eng.GameLog_features(20,"../data/procesed_data/gamelogs_clean.csv",eng.Get_Id_by_Name("Los Angeles Lakers"),eng.Get_Id_by_Name("Golden State Warriors"))
 print("Feature engineering completed")
 #stats_df = dc.fetch_teams_statistics(seasons)
 

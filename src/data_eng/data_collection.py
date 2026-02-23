@@ -46,7 +46,7 @@ def fetch_teams_gameLogs(seasons):
 
     final_df = pd.concat(all_data, ignore_index= True)
 
-    file_path = "data/raw_data/all_teams_gamelogs.csv"
+    file_path = "../data/raw_data/all_teams_gamelogs.csv"
     final_df.to_csv(file_path, index= False)
 
     return final_df
