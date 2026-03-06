@@ -1,4 +1,4 @@
-from nba_api.stats.endpoints import teamgamelog, leaguedashteamstats, scoreboardv2
+from nba_api.stats.endpoints import teamgamelog, leaguedashteamstats, scoreboardv2, leaguegamelog
 from nba_api.stats.static import teams
 import pandas as pd
 import time
@@ -15,38 +15,25 @@ import os
 
 def fetch_teams_gameLogs(seasons):
 
-    all_teams = teams.get_teams()
     all_data = []
 
     for season in seasons:
+        try:
+            gamelog = leaguegamelog.LeagueGameLog(season=season)
+            df = gamelog.get_data_frames()[0]
+            df.rename(columns={"TEAM_ID": "Team_ID", "GAME_ID": "Game_ID"}, inplace=True)
+            df["SEASON"] = season
 
-        for team in all_teams:
+            all_data.append(df)
+            time.sleep(1)
 
-            team_id = team["id"]
-            team_name = team["full_name"]
-
-            try:
-                gamelog = teamgamelog.TeamGameLog(
-                    team_id = team_id,
-                    season = season 
-                )
-
-
-            #creo el data frame
-
-                df = gamelog.get_data_frames()[0]
-                df["SEASON"] = season
-
-                all_data.append(df)
-
-                time.sleep(0.8)
-
-            except Exception as e:
-                print("error en el equipo: {team_name}: {e}")
+        except Exception as e:
+            print(f"error obteniendo gamelogs de la season {season}: {e}")
 
     final_df = pd.concat(all_data, ignore_index= True)
 
-    file_path = "../data/raw_data/all_teams_gamelogs.csv"
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    file_path = os.path.join(project_root, "data", "raw_data", "all_teams_gamelogs.csv")
     final_df.to_csv(file_path, index= False)
 
     return final_df
@@ -77,33 +64,63 @@ def fetch_teams_statistics(seasons):
 
 
     final_df = pd.concat(all_data, ignore_index= True)
-    file_path = "data/raw_data/all_teams_statistics.csv"    
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    file_path = os.path.join(project_root, "data", "raw_data", "all_teams_statistics.csv")    
     final_df.to_csv(file_path, index = False)
 
     return final_df
 
 
 
-#proximamente recopilacion de mas informacion de jugadores
-
 def fetch_gameDays():
-    
     all_data = []
 
     try:
-
         game_days = scoreboardv2.ScoreboardV2()
-
         df = game_days.get_data_frames()[0]
-
         all_data.append(df)
         
     except Exception as e:
-        print("ocurrio un error en la lectura de calendario de partidos: {e}")
+        print(f"ocurrio un error en la lectura de calendario de partidos: {e}")
 
     final_df = pd.concat(all_data,ignore_index=True)
-    file_path = "data/raw_data/gameDays.csv"
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    file_path = os.path.join(project_root, "data", "raw_data", "gameDays.csv")
 
     final_df.to_csv(file_path,index=False)
 
     return final_df 
+
+def fetch_incremental_gamelogs(latest_date, season="2024-25"):
+    """
+    Descarga los partidos de todos los equipos y filtra solo los que
+    ocurrieron estrictamente después de latest_date. Luego los añade al CSV principal.
+    Devuelve los deltas filtrados crudos.
+    """
+    try:
+        gamelog = leaguegamelog.LeagueGameLog(season=season)
+        full_updated_df = gamelog.get_data_frames()[0]
+        full_updated_df.rename(columns={"TEAM_ID": "Team_ID", "GAME_ID": "Game_ID"}, inplace=True)
+        full_updated_df["SEASON"] = season
+    except Exception as e:
+        print(f"Error extrayendo datos incrementales rápidos: {e}")
+        return None
+
+    full_updated_df["GAME_DATE"] = pd.to_datetime(full_updated_df["GAME_DATE"])
+    
+    # Filtrar estrictamente fechas nuevas
+    new_games_df = full_updated_df[full_updated_df["GAME_DATE"] > pd.to_datetime(latest_date)]
+    
+    if new_games_df.empty:
+        return new_games_df
+        
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    raw_path = os.path.join(project_root, "data", "raw_data", "all_teams_gamelogs.csv")
+    
+    # Sobreescribimos el CSV global con toda la data junta para mantener el "master data" fresco.
+    # Dado que la API igual devuelve toda la season de cada equipo (no permite limite custom por fecha)
+    # guardamos todo, pero solo retornamos las filas nuevas para Features.
+    # Evitamos duplicados guardando al disco.
+    full_updated_df.to_csv(raw_path, index=False)
+    
+    return new_games_df

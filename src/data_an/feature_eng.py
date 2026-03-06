@@ -74,84 +74,104 @@ def Get_Id_by_Name(team_name):
 
 
 
-#funcion principal para obtener los features del historial de partidos
-def GameLog_features (n, proceded_path, home_team_id, away_team_id):
+def compute_advanced_stats(gameLog_df):
+    home_numeric_fields = ["Local_FgPct", "Local_FG3aPct", "Local_FtPct", "Local_BLK", "Local_STL", "Local_AST", "Local_OREB", "Local_DREB", "Local_PF", "Local_PTS","Local_AST_rate", "Local_OREB_rate", "Local_DREB_rate", "Local_STL_rate", "Local_BLK_rate", "Local_PF_rate", "Local_PTS_rate"]
+    away_numeric_fields = ["Visitor_FgPct", "Visitor_FG3aPct", "Visitor_FtPct", "Visitor_BLK", "Visitor_STL", "Visitor_AST", "Visitor_OREB", "Visitor_DREB", "Visitor_PF", "Visitor_PTS","Visitor_AST_rate", "Visitor_OREB_rate", "Visitor_DREB_rate", "Visitor_STL_rate", "Visitor_BLK_rate", "Visitor_PF_rate", "Visitor_PTS_rate"]
+    diff_numeric_fields = ["FGpct_diff", "FG3apct_diff", "FTpct_diff"]
+    rate_numeric_fields = ["AST_rate_diff", "OREB_rate_diff", "DREB_rate_diff", "STL_rate_diff", "BLK_rate_diff", "PF_rate_diff", "PTS_rate_diff"]
+
+    gameLog_df["Local_POSS"] = gameLog_df["Local_FGA"] + 0.4 * gameLog_df["Local_FTA"] - 1.07 * (gameLog_df["Local_OREB"] / (gameLog_df["Local_OREB"] + gameLog_df["Visitor_DREB"]).replace(0, 1)) * (gameLog_df["Local_FGA"] - gameLog_df["Local_FGM"]) + gameLog_df["Local_TOV"]
+    gameLog_df["Visitor_POSS"] = gameLog_df["Visitor_FGA"] + 0.4 * gameLog_df["Visitor_FTA"] - 1.07 * (gameLog_df["Visitor_OREB"] / (gameLog_df["Visitor_OREB"] + gameLog_df["Local_DREB"]).replace(0, 1)) * (gameLog_df["Visitor_FGA"] - gameLog_df["Visitor_FGM"]) + gameLog_df["Visitor_TOV"]
+
+    gameLog_df["Local_FGMissed"] = gameLog_df["Local_FGA"] - gameLog_df["Local_FGM"]
+    gameLog_df["Visitor_FGMissed"] = gameLog_df["Visitor_FGA"] - gameLog_df["Visitor_FGM"]
+
+    gameLog_df = rate_calculator(gameLog_df, ["Visitor_AST","Visitor_PTS","Local_STL","Local_PF","Local_BLK"], "Visitor_POSS", [])
+    gameLog_df = rate_calculator(gameLog_df, ["Visitor_BLK","Visitor_STL","Visitor_PF","Local_AST","Local_PTS"], "Local_POSS", [])
+    gameLog_df = rate_calculator(gameLog_df, ["Local_DREB", "Visitor_OREB"], "Visitor_FGMissed", [])
+    gameLog_df = rate_calculator(gameLog_df, ["Visitor_DREB","Local_OREB"], "Local_FGMissed", [])
     
-        """
-        obtiene el rendimiento en anotaciones, resultados y defensa de ambos equipos en los ultimos n partidos
-        luego calcula las diferencias entre ambos equipos en cada estadistica relevante
-        y devuelve una lista con los features calculados
+    return gameLog_df, home_numeric_fields, away_numeric_fields, diff_numeric_fields, rate_numeric_fields
 
-        datos crudos calculados:
-            ..._pct : todos los porcentajes;
-        
-        datos relativos:
-
-            AST, STL,BLK,PTS: asistencias, robos y tapones calculados por la cantidad de poseciones del equipo o del equipo contrario
-            OREB, DREB: rebotes ofensivos y defensivos calculados por la cantidad de tiros errados del equipo o del equipo contrario
-
-        """
-
-
-        # creo las listas con los campos que seran necesarios para los futuros calculos
-        home_numeric_fields = ["Local_FgPct", "Local_FG3aPct", "Local_FtPct", "Local_BLK", "Local_STL", "Local_AST", "Local_OREB", "Local_DREB", "Local_PF", "Local_PTS","Local_AST_rate", "Local_OREB_rate", "Local_DREB_rate", "Local_STL_rate", "Local_BLK_rate", "Local_PF_rate", "Local_PTS_rate"]
-        away_numeric_fields = ["Visitor_FgPct", "Visitor_FG3aPct", "Visitor_FtPct", "Visitor_BLK", "Visitor_STL", "Visitor_AST", "Visitor_OREB", "Visitor_DREB", "Visitor_PF", "Visitor_PTS","Visitor_AST_rate", "Visitor_OREB_rate", "Visitor_DREB_rate", "Visitor_STL_rate", "Visitor_BLK_rate", "Visitor_PF_rate", "Visitor_PTS_rate"]
-        diff_numeric_fields = ["FGpct_diff", "FG3apct_diff", "FTpct_diff"]
-        rate_numeric_fields = ["AST_rate_diff", "OREB_rate_diff", "DREB_rate_diff", "STL_rate_diff", "BLK_rate_diff", "PF_rate_diff", "PTS_rate_diff"]
-        
+#funcion principal para obtener los features del historial de partidos
+def GameLog_features(n, proceded_path, home_team_id, away_team_id):
         gameLog_df = pd.read_csv(proceded_path, index_col=False)
-
-        #calculo de las posiciones aproximadas de un equipo
-
-        gameLog_df["Local_POSS"] = gameLog_df["Local_FGA"] + 0.4 * gameLog_df["Local_FTA"] - 1.07 * (gameLog_df["Local_OREB"] / (gameLog_df["Local_OREB"] + gameLog_df["Visitor_DREB"])) * (gameLog_df["Local_FGA"] - gameLog_df["Local_FGM"]) + gameLog_df["Local_TOV"]
-        gameLog_df["Visitor_POSS"] = gameLog_df["Visitor_FGA"] + 0.4 * gameLog_df["Visitor_FTA"] - 1.07 * (gameLog_df["Visitor_OREB"] / (gameLog_df["Visitor_OREB"] + gameLog_df["Local_DREB"])) * (gameLog_df["Visitor_FGA"] - gameLog_df["Visitor_FGM"]) + gameLog_df["Visitor_TOV"]
-
-        #calculo la cantidad de tiros fallados por cada equipo
-        gameLog_df["Local_FGMissed"] = gameLog_df["Local_FGA"] - gameLog_df["Local_FGM"]
-        gameLog_df["Visitor_FGMissed"] = gameLog_df["Visitor_FGA"] - gameLog_df["Visitor_FGM"]
-
-
-        #una vez teniendo los datos necesarios calculo los rates
-        gameLog_df = rate_calculator(gameLog_df, ["Visitor_AST","Visitor_PTS","Local_STL","Local_PF","Local_BLK"], "Visitor_POSS", home_numeric_fields + away_numeric_fields + diff_numeric_fields + rate_numeric_fields)
-        gameLog_df = rate_calculator(gameLog_df, ["Visitor_BLK","Visitor_STL","Visitor_PF","Local_AST","Local_PTS"], "Local_POSS", home_numeric_fields + away_numeric_fields + diff_numeric_fields + rate_numeric_fields)
-        gameLog_df = rate_calculator(gameLog_df, ["Local_DREB", "Visitor_OREB"], "Visitor_FGMissed", home_numeric_fields + away_numeric_fields + diff_numeric_fields + rate_numeric_fields)
-        gameLog_df = rate_calculator(gameLog_df, ["Visitor_DREB","Local_OREB"], "Local_FGMissed", home_numeric_fields + away_numeric_fields + diff_numeric_fields + rate_numeric_fields)
+        gameLog_df, home_numeric_fields, away_numeric_fields, diff_numeric_fields, rate_numeric_fields = compute_advanced_stats(gameLog_df)
         
 
         
-        #selecciono los ultimos n partidos de cada equipo
+        #selecciono los ultimos n partidos de cada equipo como local/visitante respectivamente
         home_team_df = gameLog_df[gameLog_df["Local_team_id"] == home_team_id].sort_values(by="Game_ID").tail(n)[home_numeric_fields]
         away_team_df = gameLog_df[gameLog_df["Visitor_team_id"] == away_team_id].sort_values(by="Game_ID").tail(n)[away_numeric_fields]
-
-        print("home_team_df: ", home_team_df.head())
-        print("away_team_df: ", away_team_df.head())
-        print("home_team_df columns: ", home_team_df.columns)
-        print("away_team_df columns: ", away_team_df.columns)
     
         
-        home_team_df= home_team_df.sum().to_frame().T
-        away_team_df = away_team_df.sum().to_frame().T
+        home_team_df= home_team_df.mean().to_frame().T
+        away_team_df = away_team_df.mean().to_frame().T
 
         #calculo los valores del data frame final que seran los features que usare
     
+    
         features = pd.DataFrame(columns = diff_numeric_fields + rate_numeric_fields)
-        features.loc[0, diff_numeric_fields] = (
-
-        home_team_df[["Local_FgPct", "Local_FG3aPct", "Local_FtPct"]].mean()-
-        away_team_df[["Visitor_FgPct", "Visitor_FG3aPct", "Visitor_FtPct"]].mean()
         
-        )
-        features.loc[0, rate_numeric_fields] = (
-
-        home_team_df[["Local_AST_rate", "Local_OREB_rate", "Local_DREB_rate", "Local_STL_rate", "Local_BLK_rate", "Local_PF_rate", "Local_PTS_rate"]].mean() - 
-        away_team_df [["Visitor_AST_rate", "Visitor_OREB_rate", "Visitor_DREB_rate", "Visitor_STL_rate", "Visitor_BLK_rate", "Visitor_PF_rate", "Visitor_PTS_rate"]].mean()  
-
-        )
-
-        print(home_team_df[["Local_AST_rate", "Local_OREB_rate", "Local_DREB_rate", "Local_STL_rate", "Local_BLK_rate", "Local_PF_rate", "Local_PTS_rate"]].mean())
-        print(away_team_df [["Visitor_AST_rate", "Visitor_OREB_rate", "Visitor_DREB_rate", "Visitor_STL_rate", "Visitor_BLK_rate", "Visitor_PF_rate", "Visitor_PTS_rate"]].mean())
+        home_diff_stats = home_team_df[["Local_FgPct", "Local_FG3aPct", "Local_FtPct"]].mean().values
+        away_diff_stats = away_team_df[["Visitor_FgPct", "Visitor_FG3aPct", "Visitor_FtPct"]].mean().values
+        features.loc[0, diff_numeric_fields] = home_diff_stats - away_diff_stats
+        
+        home_rate_stats = home_team_df[["Local_AST_rate", "Local_OREB_rate", "Local_DREB_rate", "Local_STL_rate", "Local_BLK_rate", "Local_PF_rate", "Local_PTS_rate"]].mean().values
+        away_rate_stats = away_team_df[["Visitor_AST_rate", "Visitor_OREB_rate", "Visitor_DREB_rate", "Visitor_STL_rate", "Visitor_BLK_rate", "Visitor_PF_rate", "Visitor_PTS_rate"]].mean().values
+        features.loc[0, rate_numeric_fields] = home_rate_stats - away_rate_stats
     
         return features
+
+def generate_training_dataset(proceded_path, n, output_path):
+    gameLog_df = pd.read_csv(proceded_path, index_col=False)
+    gameLog_df["GAME_DATE"] = pd.to_datetime(gameLog_df["GAME_DATE"])
+    gameLog_df = gameLog_df.sort_values(by="GAME_DATE")
+    
+    gameLog_df, home_numeric_fields, away_numeric_fields, diff_numeric_fields, rate_numeric_fields = compute_advanced_stats(gameLog_df)
+    
+    features_list = []
+    
+    for idx, row in gameLog_df.iterrows():
+        game_date = row["GAME_DATE"]
+        home_id = row["Local_team_id"]
+        away_id = row["Visitor_team_id"]
+        
+        home_past = gameLog_df[(gameLog_df["Local_team_id"] == home_id) & (gameLog_df["GAME_DATE"] < game_date)].tail(n)
+        away_past = gameLog_df[(gameLog_df["Visitor_team_id"] == away_id) & (gameLog_df["GAME_DATE"] < game_date)].tail(n)
+        
+        if len(home_past) < n or len(away_past) < n:
+            continue
+            
+        home_diff = home_past[["Local_FgPct", "Local_FG3aPct", "Local_FtPct"]].mean().values
+        away_diff = away_past[["Visitor_FgPct", "Visitor_FG3aPct", "Visitor_FtPct"]].mean().values
+        diff_stats = home_diff - away_diff
+        
+        home_rates = home_past[["Local_AST_rate", "Local_OREB_rate", "Local_DREB_rate", "Local_STL_rate", "Local_BLK_rate", "Local_PF_rate", "Local_PTS_rate"]].mean().values
+        away_rates = away_past[["Visitor_AST_rate", "Visitor_OREB_rate", "Visitor_DREB_rate", "Visitor_STL_rate", "Visitor_BLK_rate", "Visitor_PF_rate", "Visitor_PTS_rate"]].mean().values
+        rate_stats = home_rates - away_rates
+        
+        target = 1 if row["Local_WL"] == "W" else 0
+        
+        feature_row = {
+            "Game_ID": row["Game_ID"],
+            "GAME_DATE": row["GAME_DATE"],
+            "Local_team_id": home_id,
+            "Visitor_team_id": away_id,
+            "Target_Local_Win": target
+        }
+        
+        for i, col in enumerate(diff_numeric_fields):
+            feature_row[col] = diff_stats[i]
+        for i, col in enumerate(rate_numeric_fields):
+            feature_row[col] = rate_stats[i]
+            
+        features_list.append(feature_row)
+        
+    training_df = pd.DataFrame(features_list)
+    training_df.to_csv(output_path, index=False)
+    # print(f"Dataset de entrenamiento guardado en {output_path} con {len(training_df)} filas.")
+    return training_df
 
 
 
@@ -171,10 +191,6 @@ def rate_calculator(gameLog_df, stats_cols : list, reference : str, lista) -> pd
 
     for stat in stats_cols:
         df[stat + "_rate"] = df[stat] / df[reference]
-        #print("comparacion: ", stat+"_rate" == "Local_AST_rate")
-
-    print("rate_calculator: rates calculados para las estadisticas: ", stats_cols, " en relacion a ", reference)
-    print(df[[stat + "_rate" for stat in stats_cols]].head())
 
 
     return df

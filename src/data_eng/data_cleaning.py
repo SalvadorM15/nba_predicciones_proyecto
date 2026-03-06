@@ -98,52 +98,27 @@ def TeamStatistics_csv_filter(rawPath, procesedPath):
 
 def GameID_Agrupation(gameLog_df):
 
-    gameLog_groupby = gameLog_df.groupby("Game_ID")
-    rows = []
+    is_home = gameLog_df["MATCHUP"].str.contains("vs")
+    home_df = gameLog_df[is_home].copy()
+    away_df = gameLog_df[~is_home].copy()
 
-    for game_id, teams in gameLog_groupby:
-        if len(teams) == 2:
-            home = teams[teams["MATCHUP"].str.contains("vs").astype(int) == 1].iloc[0]
-            away = teams[teams["MATCHUP"].str.contains("vs").astype(int) == 0].iloc[0]
+    home_cols = {col: "Local_" + col for col in gameLog_df.columns if col not in ["Game_ID", "GAME_DATE"]}
+    away_cols = {col: "Visitor_" + col for col in gameLog_df.columns if col not in ["Game_ID", "GAME_DATE"]}
 
-            rows.append(
-                {
-                    "Game_ID": game_id,
-                    "Local_team_id": home["Team_ID"],
-                    "Visitor_team_id": away["Team_ID"],
-                    "Visitor_WL": away["WL"],
-                    "Local_WL": home["WL"],
-                    "Visitor_FgPct": away["FG_PCT"],
-                    "Local_FgPct": home["FG_PCT"],
-                    "Visitor_FG3aPct": away["FG3_PCT"],
-                    "Local_FG3aPct": home["FG3_PCT"],
-                    "Visitor_FtPct": away["FT_PCT"],
-                    "Local_FtPct": home["FT_PCT"],
-                    "Visitor_AST": away["AST"],
-                    "Local_AST": home["AST"],
-                    "Visitor_OREB": away["OREB"],
-                    "Local_OREB": home["OREB"],
-                    "Visitor_DREB": away["DREB"],
-                    "Local_DREB": home["DREB"],
-                    "Visitor_STL": away["STL"],
-                    "Local_STL": home["STL"],
-                    "Visitor_BLK": away["BLK"],
-                    "Local_BLK": home["BLK"],
-                    "Visitor_PF": away["PF"],
-                    "Local_PF": home["PF"],
-                    "Visitor_PTS": away["PTS"],
-                    "Local_PTS": home["PTS"],
-                    "Local_FGA": home["FGA"],
-                    "Visitor_FGA": away["FGA"],
-                    "Local_TOV": home["TOV"],
-                    "Visitor_TOV": away["TOV"],
-                    "Local_FGM": home["FGM"],
-                    "Visitor_FGM": away["FGM"],
-                    "Local_FTA": home["FTA"],
-                    "Visitor_FTA": away["FTA"],
-                }
-            )
+    home_df = home_df.rename(columns=home_cols)
+    away_df = away_df.rename(columns=away_cols)
 
+    merged_df = pd.merge(home_df, away_df, on=["Game_ID", "GAME_DATE"], how="inner")
 
-    final_gameLogs_df = pd.DataFrame(rows)
+    rename_mapping = {
+        "Local_Team_ID": "Local_team_id",
+        "Visitor_Team_ID": "Visitor_team_id",
+        "Local_FG_PCT": "Local_FgPct",
+        "Visitor_FG_PCT": "Visitor_FgPct",
+        "Local_FG3_PCT": "Local_FG3aPct",
+        "Visitor_FG3_PCT": "Visitor_FG3aPct",
+        "Local_FT_PCT": "Local_FtPct",
+        "Visitor_FT_PCT": "Visitor_FtPct",
+    }
+    final_gameLogs_df = merged_df.rename(columns=rename_mapping)
     return final_gameLogs_df

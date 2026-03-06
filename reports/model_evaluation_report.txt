@@ -1,0 +1,18 @@
+--- Resultados de la Evaluación del Modelo ---
+Accuracy (Precisión Global): 0.6446
+Brier Score (Puntuación de Calibración): 0.2166
+
+Matriz de Confusión:
+[[31 18]
+ [25 47]]
+
+Reporte de Clasificación:
+              precision    recall  f1-score   support
+
+           0       0.55      0.63      0.59        49
+           1       0.72      0.65      0.69        72
+
+    accuracy                           0.64       121
+   macro avg       0.64      0.64      0.64       121
+weighted avg       0.65      0.64      0.65       121
+
