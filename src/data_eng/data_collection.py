@@ -3,6 +3,7 @@ from nba_api.stats.static import teams
 import pandas as pd
 import time
 import os
+from datetime import datetime
 
 
 
@@ -124,3 +125,24 @@ def fetch_incremental_gamelogs(latest_date, season="2024-25"):
     full_updated_df.to_csv(raw_path, index=False)
     
     return new_games_df
+
+def get_last_seasons(n=5):
+    """
+    Retorna una lista con las últimas 'n' temporadas.
+    El formato devuelto es el que usa la API de NBA (ej: '2024-25').
+    """
+    now = datetime.now()
+    # Si estamos en octubre o después, la temporada actual empezó en base al año actual
+    if now.month >= 10:
+        current_start_year = now.year
+    else:
+        current_start_year = now.year - 1
+        
+    seasons = []
+    # Genera n temporadas hasta la actual
+    for i in range(n - 1, -1, -1):
+        start_year = current_start_year - i
+        end_year_str = str(start_year + 1)[-2:]
+        seasons.append(f"{start_year}-{end_year_str}")
+        
+    return seasons

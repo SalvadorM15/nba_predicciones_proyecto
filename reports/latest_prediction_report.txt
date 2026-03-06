@@ -125,3 +125,63 @@ Prob. Victoria Visitante (Chicago Bulls): 55.79%
    🏆 Prob. Victoria Local (Sacramento Kings): 62.24%
    🛑 Prob. Victoria Visit (New Orleans Pelicans): 37.76%
 ------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-06)
+------------------------------------------------------------
+   🏠 Local:     Denver Nuggets
+   ✈️ Visitante: New York Knicks
+
+   🏆 Prob. Victoria Local (Denver Nuggets): 75.46%
+   🛑 Prob. Victoria Visit (New York Knicks): 24.54%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-06)
+------------------------------------------------------------
+   🏠 Local:     Los Angeles Lakers
+   ✈️ Visitante: Indiana Pacers
+
+   🏆 Prob. Victoria Local (Los Angeles Lakers): 55.28%
+   🛑 Prob. Victoria Visit (Indiana Pacers): 44.72%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-06)
+------------------------------------------------------------
+   🏠 Local:     San Antonio Spurs
+   ✈️ Visitante: Los Angeles Clippers
+
+   🏆 Prob. Victoria Local (San Antonio Spurs): 46.77%
+   🛑 Prob. Victoria Visit (Los Angeles Clippers): 53.23%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-06)
+------------------------------------------------------------
+   🏠 Local:     Boston Celtics
+   ✈️ Visitante: Dallas Mavericks
+
+   🏆 Prob. Victoria Local (Boston Celtics): 76.72%
+   🛑 Prob. Victoria Visit (Dallas Mavericks): 23.28%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-06)
+------------------------------------------------------------
+   🏠 Local:     Los Angeles Lakers
+   ✈️ Visitante: Indiana Pacers
+
+   🏆 Prob. Victoria Local (Los Angeles Lakers): 55.28%
+   🛑 Prob. Victoria Visit (Indiana Pacers): 44.72%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-06)
+------------------------------------------------------------
+   🏠 Local:     Boston Celtics
+   ✈️ Visitante: Dallas Mavericks
+
+   🏆 Prob. Victoria Local (Boston Celtics): 65.18%
+   🛑 Prob. Victoria Visit (Dallas Mavericks): 34.82%
+------------------------------------------------------------

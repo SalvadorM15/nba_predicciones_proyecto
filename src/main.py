@@ -5,6 +5,8 @@ from data_sci import prob_model as model
 import pandas as pd
 import os
 from datetime import datetime
+import sys
+import time
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -135,7 +137,7 @@ def update_master_data():
     print("[*] Este proceso está consultando la API de la NBA.")
     print("[*] Puede tardar varios minutos dependiendo del volumen de datos...")
     try:
-        seasons = ["2020-21", "2021-22", "2022-23", "2023-24", "2024-25"]
+        seasons = dc.get_last_seasons(5)
         # dc.fetch_teams_gameLogs guarda en all_teams_gamelogs.csv
         dc.fetch_teams_gameLogs(seasons)
         print("\n[+] Datos crudos descargados con éxito.")
@@ -145,11 +147,19 @@ def update_master_data():
             os.path.join(project_root,"data","raw_data","all_teams_gamelogs.csv"),
             os.path.join(project_root,"data","procesed_data","gamelogs_clean.csv")
         )
+
+        print("datos actualizados: ",pd.read_csv(os.path.join(project_root,"data","procesed_data","gamelogs_clean.csv")).tail())
         print("\n[✔] ¡Base de Datos Maestra actualizada exitosamente!")
         input("\nPresiona ENTER para volver al menú...")
     except Exception as e:
         print(f"\n[X] Error crítico al actualizar la base de datos maestra: {e}")
         input("\nPresiona ENTER para volver al menú...")
+
+
+
+
+
+
 
 def continuous_training_loop():
     clear_screen()
@@ -182,56 +192,104 @@ def continuous_training_loop():
         
     partidos_analizados = 0
     
-    import sys
-    import time
-    
     try:
-        while True:
-            # UI Dinámica (Al iniciar asume que contactará rápido)
-            sys.stdout.write(f"\rBuscando desde {latest_date_str}... Asimilados: {partidos_analizados} | Status: Conectando a API NBA...          ")
+        # 1. Determinar cuál es el partido más reciente ya asimilado en el training set
+        if not os.path.exists(training_dataset_path):
+            print("[!] No existe training_dataset.csv. Por favor, asegúrese de generarlo desde un punto de inicio.")
+            return
+            
+        training_df = pd.read_csv(training_dataset_path)
+        training_df["GAME_DATE"] = pd.to_datetime(training_df["GAME_DATE"])
+        latest_trained_date = training_df["GAME_DATE"].max()
+        
+        print(f"[*] Última fecha entrenada en el dataset: {latest_trained_date.strftime('%Y-%m-%d')}")
+        
+        # 2. Identificar qué partidos están en master_df pero NO en training_df (o sea, son posteriores)
+        master_df["GAME_DATE"] = pd.to_datetime(master_df["GAME_DATE"])
+        print("master_df", master_df.head().tail())
+        print(master_df[master_df["GAME_DATE"] > latest_trained_date].tail())
+
+        untrained_games = master_df[master_df["GAME_DATE"] > latest_trained_date].sort_values(by="GAME_DATE", ascending=True)
+        
+        if untrained_games.empty:
+            print("[*] No hay partidos nuevos históricos por entrenar. Todo está al día.")
+            input("\nPresione ENTER para salir de vuelta al menú...")
+            return
+            
+        print(f"[*] Se encontraron {len(untrained_games)} partidos sin procesar en el histórico.")
+        
+        # Agrupamos por Game_ID para iterar evento por evento (cada Game_ID tiene 2 filas en gamelogs_clean)
+        unique_games = untrained_games.drop_duplicates(subset=["Game_ID"]).sort_values(by="GAME_DATE", ascending=True)
+        total_a_procesar = len(unique_games)
+        
+        for idx, row in unique_games.iterrows():
+            game_id = row["Game_ID"]
+            game_date_str = row["GAME_DATE"].strftime('%Y-%m-%d')
+            home_id = row["Local_team_id"]
+            away_id = row["Visitor_team_id"]
+            
+            sys.stdout.write(f"\rProgreso: {partidos_analizados}/{total_a_procesar} | Fecha actual: {game_date_str} | Status: Generando Features...")
             sys.stdout.flush()
             
-            new_games = dc.fetch_incremental_gamelogs(latest_date=latest_date_str)
+            # Necesitamos generar las features JUSTO antes de este partido usando el histórico hasta ese día
+            # Podríamos re-llamar al script original, pero es ineficiente leer el master_df completo por cada iteración.
+            # En su lugar, usaremos generate_training_dataset para que procese secuencialmente los delta pendientes.
+            # Para esto, simularemos un batch pequeño para no rehacer todo:
             
-            if new_games is not None and not new_games.empty:
-                sys.stdout.write(f"\rBuscando partidos nuevos desde {latest_date_str}... Partidos asimilados: {partidos_analizados} | Status: Procesando {len(new_games)} files...")
-                sys.stdout.flush()
-                
-                # 1. Necesitamos filtrar y limpiar esos nuevos raw gamelogs e introducirlos al dataset limpio maestro
-                dCl.gameLog_csv_filter(
-                    os.path.join(project_root,"data","raw_data","all_teams_gamelogs.csv"),
-                    os.path.join(project_root,"data","procesed_data","gamelogs_clean.csv")
-                )
-                
-                # 2. Re-generar un pequeño training dataset SÓLO con esos partidos nuevos
-                # (Para no cambiar la firma original completa de feature_eng ahora, 
-                # usaremos append llamando a un script interno modificado o rehaciendo el histórico)
-                sys.stdout.write(f"\rBuscando partidos nuevos desde {latest_date_str}... Partidos asimilados: {partidos_analizados} | Status: Actualizando Features...")
-                sys.stdout.flush()
-                eng.generate_training_dataset(
-                    cleaned_gamelogs_path, 20, training_dataset_path
-                )
-                
-                # 3. Re-entrenar modelo matemático
-                sys.stdout.write(f"\rBuscando partidos nuevos desde {latest_date_str}... Partidos asimilados: {partidos_analizados} | Status: Re-Entrenando...")
-                sys.stdout.flush()
-                
-                X_train, X_test, y_train, y_test, _ = model.load_and_split_data(training_dataset_path)
-                logistic_model = model.train_logistic_model(X_train, y_train)
-                model_path = os.path.join(project_root, "data", "procesed_data", "nba_logistic_model.pkl")
-                model.save_model(logistic_model, model_path, verbose=False)
-                
-                # Actualizar contadores
-                partidos_analizados += len(new_games) // 2 # Porque cada partido tiene 2 gamelogs
-                
-                # Recargar la latest date leída del nuevo CSV
-                updated_master_df = pd.read_csv(cleaned_gamelogs_path)
-                latest_date_str = updated_master_df["GAME_DATE"].max()
-                
-            else:
-                 sys.stdout.write(f"\rBuscando desde {latest_date_str}... Asimilados: {partidos_analizados} | Status: Sin juegos nuevos. Durmiendo 1 hr...")
-                 sys.stdout.flush()
-                 time.sleep(3600)
+            # Extraer histórico estrictamente anterior a este partido
+            historico_hasta_hoy = master_df[master_df["GAME_DATE"] <= row["GAME_DATE"]]
+            
+            # Guardamos un CSV temporal para que `generate_training_dataset` lo tome como input
+            temp_path = os.path.join(project_root, "data", "procesed_data", "temp_gamelogs.csv")
+            historico_hasta_hoy.to_csv(temp_path, index=False)
+            
+            # Generamos features sólo de ese batch temporal (el script interno procesa todo hasta temp_path)
+            # Como optimización, generate_training_dataset ya procesa ordenado. Podríamos pasarle directamente
+            # el máster y que sobreescriba, pero el usuario pidió 1 por 1 para ver el progreso.
+            # Aquí lo ideal sería que generate_training_dataset anexe o procese delta, pero por simplicidad
+            # usaremos el enfoque de reconstruir el training hasta el target y entrenar:
+            
+            # Una mejor aproximación 1 por 1: generamos las features de ese UNICO partido local/visitante
+            # (Reutilizamos lógica de eng.compute_advanced_stats internamente pero simplificada llamando al generador completo
+            # con el histórico incrementado)
+            
+            # Nota: para no hacerlo computacionalmente inviable iterar miles en disco, vamos a rehacer las features 
+            # del batch faltante y las concatenamos al training base. 
+            pass
+
+        # Para cumplir EXACTAMENTE lo pedido "una vez terminada pasa al siguiente partido..."
+        # Vamos a reescribir la lógica de update línea por línea:
+        
+        for idx, row in unique_games.iterrows():
+            sys.stdout.write(f"\rBuscando desde {latest_trained_date.strftime('%Y-%m-%d')}... Asimilados: {partidos_analizados}/{total_a_procesar} | Status: Extrayendo Features...")
+            sys.stdout.flush()
+            
+            # Extraer histórico <= a este partido temporalmente
+            temp_master = master_df[master_df["GAME_DATE"] <= row["GAME_DATE"]].copy()
+            temp_csv = os.path.join(project_root, "data", "procesed_data", "temp_gamelogs.csv")
+            temp_master.to_csv(temp_csv, index=False)
+            
+            # Generar features SOLO guardando temporal (es costoso pero cumple el requerimiento secuencial)
+            temp_train_path = os.path.join(project_root, "data", "procesed_data", "temp_train.csv")
+            eng.generate_training_dataset(temp_csv, 20, temp_train_path)
+            
+            # Leer el set actualizado (que ahora incluye la fila del partido iterado)
+            new_train_df = pd.read_csv(temp_train_path)
+            
+            # Lo sobreescribimos al oficial para persistir el avance por partido
+            new_train_df.to_csv(training_dataset_path, index=False)
+            
+            sys.stdout.write(f"\rBuscando desde {latest_trained_date.strftime('%Y-%m-%d')}... Asimilados: {partidos_analizados}/{total_a_procesar} | Status: Re-Entrenando...     ")
+            sys.stdout.flush()
+            
+            # Re-entrenar
+            X_train, X_test, y_train, y_test, _ = model.load_and_split_data(training_dataset_path)
+            logistic_model = model.train_logistic_model(X_train, y_train)
+            model_path = os.path.join(project_root, "data", "procesed_data", "nba_logistic_model.pkl")
+            model.save_model(logistic_model, model_path, verbose=False)
+            
+            partidos_analizados += 1
+
 
     except KeyboardInterrupt:
         print("\n\n" + "="*50)
@@ -250,9 +308,39 @@ def continuous_training_loop():
         signo = "+" if delta >= 0 else ""
         print(f"   - Nueva precisión lograda:   {acc_final * 100:.2f}%")
         print(f"   - Mejora Total de Precisión: {signo}{delta * 100:.2f}%\n")
-        print(f"[*] El conocimiento algorítmico se ha actualizado automáticamente.")
+        print(f"\n[*] El conocimiento algorítmico se ha actualizado automáticamente.")
+        
+        # Limpiar temporales si existen
+        temp_csv = os.path.join(project_root, "data", "procesed_data", "temp_gamelogs.csv")
+        temp_train = os.path.join(project_root, "data", "procesed_data", "temp_train.csv")
+        if os.path.exists(temp_csv): os.remove(temp_csv)
+        if os.path.exists(temp_train): os.remove(temp_train)
+        
         input("\nPresione ENTER para salir de vuelta al menú...")
         return
+    
+    # Si termina el loop normal (sin Ctrl+C)
+    print("\n\n" + "="*50)
+    print(" ENTRENAMIENTO COMPLETADO ")
+    print("="*50)
+    print(f"- Todos los {partidos_analizados} partidos históricos pendientes fueron asimilados.")
+    
+    X_train, X_test, y_train, y_test, _ = model.load_and_split_data(training_dataset_path)
+    acc_final, brier_final = model.evaluate_model(logistic_model, X_test, y_test, verbose=False)
+    delta = acc_final - acc_base
+    signo = "+" if delta >= 0 else ""
+    
+    print(f"   - Tamaño actual del dataset: {len(X_train) + len(X_test)} partidos")
+    print(f"   - Mejora Total de Precisión: {signo}{delta * 100:.2f}%\n")
+    
+    # Limpiar temporales
+    temp_csv = os.path.join(project_root, "data", "procesed_data", "temp_gamelogs.csv")
+    temp_train = os.path.join(project_root, "data", "procesed_data", "temp_train.csv")
+    if os.path.exists(temp_csv): os.remove(temp_csv)
+    if os.path.exists(temp_train): os.remove(temp_train)
+        
+    input("\nPresione ENTER para salir de vuelta al menú...")
+    return
 
 def main():
     while True:

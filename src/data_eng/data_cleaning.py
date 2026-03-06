@@ -45,14 +45,14 @@ def gameLog_csv_filter(rawPath, procesedPath):
     gameLog_df.columns = gameLog_df.columns.str.strip()
     campos_numericos = ["FGM", "FGA", "FG_PCT", "FG3M", "FG3_PCT", "FTM", "FTA", "FT_PCT", "OREB", "DREB", "AST", "STL", "BLK", "PF", "PTS", "TOV"]
 
-    print(gameLog_df.columns.tolist())
-    print(campos_numericos)
+    #print(gameLog_df.columns.tolist())
+    #print(campos_numericos)
 
     gameLog_df[campos_numericos] = gameLog_df[campos_numericos].apply(pd.to_numeric,errors = "coerce")
     gameLog_df = GameID_Agrupation(gameLog_df)
-    print("data frame despues de la agrupacion :", gameLog_df.head())
+    #print("data frame despues de la agrupacion :", gameLog_df.head())
     gameLog_df = final_stats_validation(gameLog_df)
-    print("data frame despues de la validacion :", gameLog_df.head())
+    #print("data frame despues de la validacion :", gameLog_df.head())
 
     final_csv = gameLog_df.to_csv(procesedPath,index=False)
 
