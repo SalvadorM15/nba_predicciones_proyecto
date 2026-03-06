@@ -1,0 +1,20 @@
+[nbaPredict]
+
+name = "nbaPredict"
+version = "0.1.0"
+description = "Prediccion de partidos de la NBA"
+
+[nbaPredict.scripts]
+
+nbaPredict = "python src/main.py"
+
+[build.system]
+
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project.dependencies]
+
+nba_api = "*"
+pandas = "*"
+scikit-learn = "*"
