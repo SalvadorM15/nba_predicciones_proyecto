@@ -1,5 +1,6 @@
 
 import pandas as pd
+import numpy as np
 import os
 
 
@@ -122,3 +123,77 @@ def GameID_Agrupation(gameLog_df):
     }
     final_gameLogs_df = merged_df.rename(columns=rename_mapping)
     return final_gameLogs_df
+
+
+def standings_csv_filter(rawPath, procesedPath):
+    """
+    Limpia y filtra los datos de standings.
+    Conserva: TeamID, TeamName, SEASON, LeagueRank, PlayoffRank, Conference, WINS, LOSSES, WinPCT, L10.
+    """
+    df = pd.read_csv(rawPath)
+    
+    campos_relevantes = ["TeamID", "TeamName", "SEASON", "LeagueRank", "PlayoffRank",
+                         "Conference", "WINS", "LOSSES", "WinPCT", "L10"]
+    
+    # Filtrar solo columnas que existan (por si la API cambia nombres)
+    cols_existentes = [c for c in campos_relevantes if c in df.columns]
+    df = df[cols_existentes]
+    
+    campos_numericos = [c for c in ["LeagueRank", "PlayoffRank", "WINS", "LOSSES", "WinPCT"] if c in df.columns]
+    df[campos_numericos] = df[campos_numericos].apply(pd.to_numeric, errors="coerce")
+    
+    df = df.drop_duplicates(subset=["TeamID", "SEASON"])
+    df.to_csv(procesedPath, index=False)
+    
+    return df
+
+
+def _parse_min_to_float(min_val):
+    """Convierte MIN de formato 'MM:SS' o numérico a float (minutos decimales)."""
+    if pd.isna(min_val):
+        return np.nan
+    if isinstance(min_val, (int, float)):
+        return float(min_val)
+    min_str = str(min_val).strip()
+    if ':' in min_str:
+        parts = min_str.split(':')
+        try:
+            return float(parts[0]) + float(parts[1]) / 60.0
+        except (ValueError, IndexError):
+            return np.nan
+    try:
+        return float(min_str)
+    except ValueError:
+        return np.nan
+
+
+def player_gamelogs_csv_filter(rawPath, procesedPath):
+    """
+    Limpia y filtra los game logs de jugadores.
+    - Convierte MIN de 'MM:SS' a float
+    - ELIMINA filas con datos vacíos (no rellena con mean)
+    - Conserva: PLAYER_ID, PLAYER_NAME, Team_ID, Game_ID, GAME_DATE, MIN, PLUS_MINUS, PTS, REB, AST, SEASON
+    """
+    df = pd.read_csv(rawPath)
+    
+    campos_relevantes = ["PLAYER_ID", "PLAYER_NAME", "Team_ID", "Game_ID", "GAME_DATE",
+                         "MIN", "PLUS_MINUS", "PTS", "REB", "AST", "SEASON"]
+    
+    cols_existentes = [c for c in campos_relevantes if c in df.columns]
+    df = df[cols_existentes]
+    
+    # Convertir MIN de MM:SS a float
+    if "MIN" in df.columns:
+        df["MIN"] = df["MIN"].apply(_parse_min_to_float)
+    
+    # Convertir campos numéricos
+    campos_numericos = [c for c in ["MIN", "PLUS_MINUS", "PTS", "REB", "AST"] if c in df.columns]
+    df[campos_numericos] = df[campos_numericos].apply(pd.to_numeric, errors="coerce")
+    
+    # ELIMINAR filas con datos vacíos (no rellenar)
+    df = df.dropna(subset=campos_numericos)
+    
+    df["GAME_DATE"] = pd.to_datetime(df["GAME_DATE"])
+    df.to_csv(procesedPath, index=False)
+    
+    return df

@@ -1,4 +1,4 @@
-from nba_api.stats.endpoints import teamgamelog, leaguedashteamstats, scoreboardv2, leaguegamelog
+from nba_api.stats.endpoints import teamgamelog, leaguedashteamstats, scoreboardv2, leaguegamelog, leaguestandings
 from nba_api.stats.static import teams
 import pandas as pd
 import time
@@ -146,3 +146,73 @@ def get_last_seasons(n=5):
         seasons.append(f"{start_year}-{end_year_str}")
         
     return seasons
+
+
+def fetch_league_standings(seasons):
+    """
+    Descarga los standings (posiciones en tabla) de cada temporada.
+    Retorna un DataFrame con TeamID, LeagueRank, WinPCT, WINS, LOSSES, PlayoffRank, L10, Conference.
+    """
+    all_data = []
+
+    for season in seasons:
+        try:
+            standings = leaguestandings.LeagueStandings(
+                league_id='00',
+                season=season,
+                season_type='Regular Season'
+            )
+            df = standings.get_data_frames()[0]
+            df["SEASON"] = season
+            all_data.append(df)
+            time.sleep(1)
+        except Exception as e:
+            print(f"Error obteniendo standings de la season {season}: {e}")
+
+    if not all_data:
+        print("[!] No se obtuvieron datos de standings.")
+        return None
+
+    final_df = pd.concat(all_data, ignore_index=True)
+
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    file_path = os.path.join(project_root, "data", "raw_data", "league_standings.csv")
+    final_df.to_csv(file_path, index=False)
+
+    return final_df
+
+
+def fetch_player_gamelogs(seasons):
+    """
+    Descarga los game logs de TODOS los jugadores de la liga por temporada.
+    Incluye PLUS_MINUS, MIN, PTS, REB, AST por cada partido jugado.
+    """
+    all_data = []
+
+    for season in seasons:
+        try:
+            gamelog = leaguegamelog.LeagueGameLog(
+                season=season,
+                player_or_team_abbreviation='P'
+            )
+            df = gamelog.get_data_frames()[0]
+            df.rename(columns={"TEAM_ID": "Team_ID", "GAME_ID": "Game_ID"}, inplace=True)
+            df["SEASON"] = season
+            all_data.append(df)
+            print(f"   [+] Jugadores season {season}: {len(df)} registros")
+            time.sleep(2)  # delay mayor porque es más pesado
+        except Exception as e:
+            print(f"Error obteniendo player gamelogs de la season {season}: {e}")
+
+    if not all_data:
+        print("[!] No se obtuvieron datos de jugadores.")
+        return None
+
+    final_df = pd.concat(all_data, ignore_index=True)
+
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    file_path = os.path.join(project_root, "data", "raw_data", "player_gamelogs.csv")
+    final_df.to_csv(file_path, index=False)
+
+    return final_df
+
