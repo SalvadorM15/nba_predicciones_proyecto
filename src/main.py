@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 import sys
 import time
+import pickle
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -77,15 +78,11 @@ def predict_todays_game():
                 home_id, away_id, home_name, away_name = games_list[seleccion - 1]
                 
                 print(f"\n[*] Generando features históricas para: {away_name} @ {home_name}...")
-                standings_clean_path = os.path.join(project_root, "data", "procesed_data", "standings_clean.csv")
-                player_clean_path = os.path.join(project_root, "data", "procesed_data", "player_gamelogs_clean.csv")
                 featured_gameLog_df = eng.GameLog_features(
                     20,
                     os.path.join(project_root,"data","procesed_data","gamelogs_clean.csv"),
                     home_id, 
-                    away_id,
-                    standings_path=standings_clean_path if os.path.exists(standings_clean_path) else None,
-                    player_gamelogs_path=player_clean_path if os.path.exists(player_clean_path) else None
+                    away_id
                 )
                 
                 print("[*] Cargando modelo de Regresión Logística...")
@@ -141,10 +138,10 @@ def update_master_data():
     print("[*] Este proceso está consultando la API de la NBA.")
     print("[*] Puede tardar varios minutos dependiendo del volumen de datos...")
     try:
-        seasons = dc.get_last_seasons(5)
+        seasons = ["2015-16", "2016-17", "2017-18", "2018-19", "2019-20", "2020-21", "2021-22", "2022-23", "2023-24", "2024-25"]
         # dc.fetch_teams_gameLogs guarda en all_teams_gamelogs.csv
         dc.fetch_teams_gameLogs(seasons)
-        print("\n[+] Datos crudos de equipos descargados con éxito.")
+        print("\n[+] Datos crudos descargados con éxito.")
         print("[*] Limpiando y procesando gamelogs para su almacenamiento seguro...")
         
         dCl.gameLog_csv_filter(
@@ -153,25 +150,6 @@ def update_master_data():
         )
 
         print("datos actualizados: ",pd.read_csv(os.path.join(project_root,"data","procesed_data","gamelogs_clean.csv")).tail())
-        
-        # Descargar y limpiar standings (posiciones en tabla)
-        print("\n[*] Descargando standings (posiciones en tabla)...")
-        dc.fetch_league_standings(seasons)
-        dCl.standings_csv_filter(
-            os.path.join(project_root, "data", "raw_data", "league_standings.csv"),
-            os.path.join(project_root, "data", "procesed_data", "standings_clean.csv")
-        )
-        print("[+] Standings descargados y procesados.")
-        
-        # Descargar y limpiar player gamelogs
-        print("\n[*] Descargando game logs de jugadores (esto puede tardar)...")
-        dc.fetch_player_gamelogs(seasons)
-        dCl.player_gamelogs_csv_filter(
-            os.path.join(project_root, "data", "raw_data", "player_gamelogs.csv"),
-            os.path.join(project_root, "data", "procesed_data", "player_gamelogs_clean.csv")
-        )
-        print("[+] Player gamelogs descargados y procesados.")
-        
         print("\n[✔] ¡Base de Datos Maestra actualizada exitosamente!")
         input("\nPresiona ENTER para volver al menú...")
     except Exception as e:
@@ -193,6 +171,8 @@ def continuous_training_loop():
     
     training_dataset_path = os.path.join(project_root, "data", "procesed_data", "training_dataset.csv")
     cleaned_gamelogs_path = os.path.join(project_root, "data", "procesed_data", "gamelogs_clean.csv")
+
+    
     
     # 1. Cargar datos históricos base para obtener la fecha más reciente
     if not os.path.exists(cleaned_gamelogs_path):
@@ -200,20 +180,33 @@ def continuous_training_loop():
         return
         
     master_df = pd.read_csv(cleaned_gamelogs_path)
+    master_df = master_df[master_df["GAME_DATE"] < "2022-01-01"]
     latest_date_str = master_df["GAME_DATE"].max()
-    
+
+    eng.generate_training_dataset(cleaned_gamelogs_path, 20, training_dataset_path)
+            
+    # Leer el set actualizado (que ahora incluye la fila del partido iterado)
+    new_train_df = pd.read_csv(training_dataset_path)
+    print(new_train_df.head())
     print(f"[*] Última fecha en la base de datos: {latest_date_str}")
     
     # Métricas iniciales
-    best_params = None
     try:
+        #print("[*] Cargando datos históricos...")
         X_train, X_test, y_train, y_test, _ = model.load_and_split_data(training_dataset_path)
-        logistic_model, best_params = model.train_logistic_model(X_train, y_train, use_gridsearch=True, verbose=False)
+        print("[*] Datos cargados exitosamente.")
+        logistic_model = model.train_logistic_model(X_train, y_train, None)
+        print("[*] Modelo entrenado exitosamente.")
         acc_base, _ = model.evaluate_model(logistic_model, X_test, y_test, verbose=False)
-        if best_params and "fallback" not in best_params:
-            print(f"   [GridSearch Inicial] Mejores params: {best_params}")
+        model.save_model(logistic_model, os.path.join(project_root, "data", "procesed_data", "nba_logistic_model.pkl"))
+        with open(os.path.join(project_root, "data", "procesed_data", "nba_logistic_model.pkl"), "rb") as f:
+            model = pickle.load(f)
+    
+        params = model.get_params();
+        
     except Exception as e:
-        print(f"[X] No se pudo evaluar el modelo inicial: {e}")
+        time.sleep(5)
+        print("[X] No se pudo evaluar el modelo inicial. ¿Existe el training dataset?")
         return
         
     partidos_analizados = 0
@@ -226,23 +219,18 @@ def continuous_training_loop():
             
         training_df = pd.read_csv(training_dataset_path)
         training_df["GAME_DATE"] = pd.to_datetime(training_df["GAME_DATE"])
-        latest_trained_date = training_df["GAME_DATE"].max()
+        tranining_df = training_df[training_df["GAME_DATE"] < "2022-01-01"]
         
-        print(f"[*] Última fecha entrenada en el dataset: {latest_trained_date.strftime('%Y-%m-%d')}")
+        #print(f"[*] Última fecha entrenada en el dataset: {latest_trained_date.strftime('%Y-%m-%d')}")
         
         # 2. Identificar qué partidos están en master_df pero NO en training_df (o sea, son posteriores)
         master_df["GAME_DATE"] = pd.to_datetime(master_df["GAME_DATE"])
         print("master_df", master_df.head().tail())
         print(master_df[master_df["GAME_DATE"] > latest_trained_date].tail())
 
-        untrained_games = master_df[master_df["GAME_DATE"] > latest_trained_date].sort_values(by="GAME_DATE", ascending=True)
-        
-        if untrained_games.empty:
-            print("[*] No hay partidos nuevos históricos por entrenar. Todo está al día.")
-            input("\nPresione ENTER para salir de vuelta al menú...")
-            return
-            
-        print(f"[*] Se encontraron {len(untrained_games)} partidos sin procesar en el histórico.")
+        #untrained_games = master_df[master_df["GAME_DATE"] > latest_trained_date].sort_values(by="GAME_DATE", ascending=True)
+               
+        #print(f"[*] Se encontraron {len(untrained_games)} partidos sin procesar en el histórico.")
         
         # Agrupamos por Game_ID para iterar evento por evento (cada Game_ID tiene 2 filas en gamelogs_clean)
         unique_games = untrained_games.drop_duplicates(subset=["Game_ID"]).sort_values(by="GAME_DATE", ascending=True)
@@ -297,13 +285,7 @@ def continuous_training_loop():
             
             # Generar features SOLO guardando temporal (es costoso pero cumple el requerimiento secuencial)
             temp_train_path = os.path.join(project_root, "data", "procesed_data", "temp_train.csv")
-            standings_clean = os.path.join(project_root, "data", "procesed_data", "standings_clean.csv")
-            player_clean = os.path.join(project_root, "data", "procesed_data", "player_gamelogs_clean.csv")
-            eng.generate_training_dataset(
-                temp_csv, 20, temp_train_path,
-                standings_path=standings_clean if os.path.exists(standings_clean) else None,
-                player_gamelogs_path=player_clean if os.path.exists(player_clean) else None
-            )
+            eng.generate_training_dataset(temp_csv, 20, temp_train_path)
             
             # Leer el set actualizado (que ahora incluye la fila del partido iterado)
             new_train_df = pd.read_csv(temp_train_path)
@@ -313,10 +295,12 @@ def continuous_training_loop():
             
             sys.stdout.write(f"\rBuscando desde {latest_trained_date.strftime('%Y-%m-%d')}... Asimilados: {partidos_analizados}/{total_a_procesar} | Status: Re-Entrenando...     ")
             sys.stdout.flush()
+
+
             
-            # Re-entrenar con GridSearch
+            # Re-entrenar
             X_train, X_test, y_train, y_test, _ = model.load_and_split_data(training_dataset_path)
-            logistic_model, best_params = model.train_logistic_model(X_train, y_train, use_gridsearch=True, verbose=False)
+            logistic_model = modexl.train_logistic_model(X_train, y_train, params)
             model_path = os.path.join(project_root, "data", "procesed_data", "nba_logistic_model.pkl")
             model.save_model(logistic_model, model_path, verbose=False)
             
@@ -324,6 +308,14 @@ def continuous_training_loop():
 
 
     except KeyboardInterrupt:
+
+        #una vez cortado el entrenamiento elijo el mejor modelo y los mejores parametros y los persisto para reutilizarlos
+        best_model, best_params = model.grid_tune_regretion(X_train, y_train)
+        model.save_model(best_model, "nba_logistic_model.pkl")
+        best_params_path = os.path.join(project_root, "data", "procesed_data", "best_params.json")
+        with open(best_params_path, "w") as f:
+            json.dump(best_params, f)
+
         print("\n\n" + "="*50)
         print(" REPORTE DE ENTRENAMIENTO FINALIZADO ")
         print("="*50)
@@ -339,10 +331,7 @@ def continuous_training_loop():
         delta = acc_final - acc_base
         signo = "+" if delta >= 0 else ""
         print(f"   - Nueva precisión lograda:   {acc_final * 100:.2f}%")
-        print(f"   - Mejora Total de Precisión: {signo}{delta * 100:.2f}%")
-        if best_params and "fallback" not in best_params:
-            print(f"   - Mejores Hiperparámetros:   {best_params}")
-        print()
+        print(f"   - Mejora Total de Precisión: {signo}{delta * 100:.2f}%\n")
         print(f"\n[*] El conocimiento algorítmico se ha actualizado automáticamente.")
         
         # Limpiar temporales si existen
@@ -366,10 +355,7 @@ def continuous_training_loop():
     signo = "+" if delta >= 0 else ""
     
     print(f"   - Tamaño actual del dataset: {len(X_train) + len(X_test)} partidos")
-    print(f"   - Mejora Total de Precisión: {signo}{delta * 100:.2f}%")
-    if best_params and "fallback" not in best_params:
-        print(f"   - Mejores Hiperparámetros:   {best_params}")
-    print()
+    print(f"   - Mejora Total de Precisión: {signo}{delta * 100:.2f}%\n")
     
     # Limpiar temporales
     temp_csv = os.path.join(project_root, "data", "procesed_data", "temp_gamelogs.csv")

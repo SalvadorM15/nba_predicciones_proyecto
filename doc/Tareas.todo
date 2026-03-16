@@ -1,0 +1,20 @@
+ARCHIVO TODO COMPLETO DE TAREAS EN EL AVANCE DEL PROYECTO--------------------------------NBA_PREDICT_ML--------------------------------------------------------------------------------
+
+1) Modularizacion y limpieza de codigo
+
+	- dividir la funcion de entrenamiento continuo en una serie de pasos algoritmicos (patron template)
+	- crear una funcion de escritura de resultados para futura escalabilidad del codigo
+	
+2) Codeo, nuevas implementaciones, bugs
+
+	-Añadir modulo de revision de lesiones en los jugadores mas usados con mas minutos de cada equipo
+	-Corregir features dudosos y orden de implementacion del entrenamiento (pipeline - grid search)
+	
+3) estudio y progreso del proyecto
+
+	-Averiguar mejores metodos de entrenamiento para distintas instancias
+	-Entender en profundidad como funcionan los entrenamientos con correccion de hiper-parametros
+	-Estudiar funcionalidades de sklearn y pandas para futuras implementaciones
+	-Estudiar el uso de matplotb para crear graficos utiles
+	
+
