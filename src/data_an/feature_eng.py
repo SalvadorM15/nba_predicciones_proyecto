@@ -251,6 +251,8 @@ def generate_training_dataset(proceded_path, n, output_path, standings_path=None
     
     features_list = []
     
+    #toda esta parte del for se podria pasar a una nueva funcion de creacion del dataframe de features
+    #
     for idx, row in gameLog_df.iterrows():
         game_date = row["GAME_DATE"]
         home_id = row["Local_team_id"]

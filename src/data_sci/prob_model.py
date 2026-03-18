@@ -42,6 +42,7 @@ def load_and_split_data(dataset_path, season_start_year=2015):
     y = df['Target_Local_Win'].values
     
     # Separamos X (Features). Descartamos columnas informativas categóricas.
+    #Tal vez esta parte deberia implementarse en la seccion de cracion de features en feature_eng.py
     cols_to_drop = ['Game_ID', 'GAME_DATE', 'Local_team_id', 'Visitor_team_id', 'Target_Local_Win']
     X = df.drop(columns=cols_to_drop)
     
@@ -50,51 +51,74 @@ def load_and_split_data(dataset_path, season_start_year=2015):
     
     return X_train, X_test, y_train, y_test, X.columns
 
-def train_logistic_model(X_train, y_train, use_gridsearch=True, verbose=True):
+def train_logistic_model(X_train, y_train, use_gridsearch=True, verbose=True, existing_pipeline=None):
     """
     Crea un pipeline que estandariza los datos y entrena una regresión logística.
     Si use_gridsearch=True, realiza GridSearchCV para encontrar los mejores hiperparámetros.
     Retorna el mejor pipeline (modelo) y los mejores parámetros encontrados.
     """
+    if existing_pipeline is not None:
+        # Re-entrena el modelo existente (aprovechando warm_start si está activado y si es el mismo estimador)
+        existing_pipeline.fit(X_train, y_train)
+        return existing_pipeline, {"gridsearch": False, "status": "reloaded_model"}
+
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
-        ('classifier', LogisticRegression(random_state=42, max_iter=1000))
+        # class_weight='balanced' helps with slight class imbalances
+        # warm_start=True permite reutilizar los pesos anteriores si se vuelve a llamar a fit
+        ('classifier', LogisticRegression(random_state=42, max_iter=2000, class_weight='balanced', warm_start=True))
     ])
     
     if use_gridsearch:
-        param_grid = {
-            'classifier__C': [0.01, 0.1, 1, 10, 100],
-            'classifier__penalty': ['l1', 'l2'],
-            'classifier__solver': ['saga', 'lbfgs'],
-        }
+        # Avoid solver/penalty incompatibility warnings:
+        # lbfgs only supports l2 or none.
+        # saga supports l1, l2, elasticnet, none.
+        param_grid = [
+            {
+                'classifier__solver': ['lbfgs'],
+                'classifier__penalty': ['l2', None],
+                'classifier__C': [0.01, 0.1, 1, 10, 100]
+            },
+            {
+                'classifier__solver': ['saga'],
+                'classifier__penalty': ['l1', 'l2'],
+                'classifier__C': [0.01, 0.1, 1, 10, 100]
+            }
+        ]
         
-        grid_search = GridSearchCV(
-            pipeline,
-            param_grid,
-            cv=5,
-            scoring='accuracy',
-            n_jobs=-1,
-            error_score='raise'
-        )
-        
-        try:
-            grid_search.fit(X_train, y_train)
-            best_model = grid_search.best_estimator_
-            best_params = grid_search.best_params_
-            best_score = grid_search.best_score_
+        # Suppress ConvergenceWarnings internally if max_iter isn't enough for some extreme C values
+        import warnings
+        from sklearn.exceptions import ConvergenceWarning
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=ConvergenceWarning)
             
-            if verbose:
-                print(f"\n   [GridSearch] Mejor accuracy CV: {best_score*100:.2f}%")
-                print(f"   [GridSearch] Mejores parámetros: {best_params}")
+            grid_search = GridSearchCV(
+                pipeline,
+                param_grid,
+                cv=5,
+                scoring='accuracy',
+                n_jobs=-1,
+                error_score='raise'
+            )
             
-            return best_model, best_params
-            
-        except Exception as e:
-            if verbose:
-                print(f"\n   [GridSearch] Error en la búsqueda: {e}")
-                print(f"   [GridSearch] Usando parámetros por defecto...")
-            pipeline.fit(X_train, y_train)
-            return pipeline, {"fallback": True, "error": str(e)}
+            try:
+                grid_search.fit(X_train, y_train)
+                best_model = grid_search.best_estimator_
+                best_params = grid_search.best_params_
+                best_score = grid_search.best_score_
+                
+                if verbose:
+                    print(f"\n   [GridSearch] Mejor accuracy CV: {best_score*100:.2f}%")
+                    print(f"   [GridSearch] Mejores parámetros: {best_params}")
+                
+                return best_model, best_params
+                
+            except Exception as e:
+                if verbose:
+                    print(f"\n   [GridSearch] Error en la búsqueda: {e}")
+                    print(f"   [GridSearch] Usando parámetros por defecto...")
+                pipeline.fit(X_train, y_train)
+                return pipeline, {"fallback": True, "error": str(e)}
     else:
         pipeline.fit(X_train, y_train)
         return pipeline, {"gridsearch": False}

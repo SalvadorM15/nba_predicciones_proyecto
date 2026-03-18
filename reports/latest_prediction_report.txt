@@ -365,3 +365,163 @@ Prob. Victoria Visitante (Chicago Bulls): 55.79%
    🏆 Prob. Victoria Local (Cleveland Cavaliers): 82.68%
    🛑 Prob. Victoria Visit (Dallas Mavericks): 17.32%
 ------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     Los Angeles Clippers
+   ✈️ Visitante: San Antonio Spurs
+
+   🏆 Prob. Victoria Local (Los Angeles Clippers): 54.41%
+   🛑 Prob. Victoria Visit (San Antonio Spurs): 45.59%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     Atlanta Hawks
+   ✈️ Visitante: Orlando Magic
+
+   🏆 Prob. Victoria Local (Atlanta Hawks): 57.44%
+   🛑 Prob. Victoria Visit (Orlando Magic): 42.56%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     Brooklyn Nets
+   ✈️ Visitante: Portland Trail Blazers
+
+   🏆 Prob. Victoria Local (Brooklyn Nets): 55.28%
+   🛑 Prob. Victoria Visit (Portland Trail Blazers): 44.72%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     Washington Wizards
+   ✈️ Visitante: Golden State Warriors
+
+   🏆 Prob. Victoria Local (Washington Wizards): 20.09%
+   🛑 Prob. Victoria Visit (Golden State Warriors): 79.91%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     Houston Rockets
+   ✈️ Visitante: Los Angeles Lakers
+
+   🏆 Prob. Victoria Local (Houston Rockets): 58.04%
+   🛑 Prob. Victoria Visit (Los Angeles Lakers): 41.96%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     Los Angeles Clippers
+   ✈️ Visitante: San Antonio Spurs
+
+   🏆 Prob. Victoria Local (Los Angeles Clippers): 64.47%
+   🛑 Prob. Victoria Visit (San Antonio Spurs): 35.53%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     Atlanta Hawks
+   ✈️ Visitante: Orlando Magic
+
+   🏆 Prob. Victoria Local (Atlanta Hawks): 45.86%
+   🛑 Prob. Victoria Visit (Orlando Magic): 54.14%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     Washington Wizards
+   ✈️ Visitante: Golden State Warriors
+
+   🏆 Prob. Victoria Local (Washington Wizards): 20.09%
+   🛑 Prob. Victoria Visit (Golden State Warriors): 79.91%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     Brooklyn Nets
+   ✈️ Visitante: Portland Trail Blazers
+
+   🏆 Prob. Victoria Local (Brooklyn Nets): 39.39%
+   🛑 Prob. Victoria Visit (Portland Trail Blazers): 60.61%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     Boston Celtics
+   ✈️ Visitante: Phoenix Suns
+
+   🏆 Prob. Victoria Local (Boston Celtics): 68.55%
+   🛑 Prob. Victoria Visit (Phoenix Suns): 31.45%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     New Orleans Pelicans
+   ✈️ Visitante: Dallas Mavericks
+
+   🏆 Prob. Victoria Local (New Orleans Pelicans): 48.88%
+   🛑 Prob. Victoria Visit (Dallas Mavericks): 51.12%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     Chicago Bulls
+   ✈️ Visitante: Memphis Grizzlies
+
+   🏆 Prob. Victoria Local (Chicago Bulls): 46.86%
+   🛑 Prob. Victoria Visit (Memphis Grizzlies): 53.14%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-16)
+------------------------------------------------------------
+   🏠 Local:     Los Angeles Clippers
+   ✈️ Visitante: San Antonio Spurs
+
+   🏆 Prob. Victoria Local (Los Angeles Clippers): 64.47%
+   🛑 Prob. Victoria Visit (San Antonio Spurs): 35.53%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-18)
+------------------------------------------------------------
+   🏠 Local:     Boston Celtics
+   ✈️ Visitante: Golden State Warriors
+
+   🏆 Prob. Victoria Local (Boston Celtics): 45.86%
+   🛑 Prob. Victoria Visit (Golden State Warriors): 54.14%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-18)
+------------------------------------------------------------
+   🏠 Local:     Indiana Pacers
+   ✈️ Visitante: Portland Trail Blazers
+
+   🏆 Prob. Victoria Local (Indiana Pacers): 64.44%
+   🛑 Prob. Victoria Visit (Portland Trail Blazers): 35.56%
+------------------------------------------------------------
+
+------------------------------------------------------------
+   📊 PREDICCIÓN DE PARTIDO (Fecha: 2026-03-18)
+------------------------------------------------------------
+   🏠 Local:     Dallas Mavericks
+   ✈️ Visitante: Atlanta Hawks
+
+   🏆 Prob. Victoria Local (Dallas Mavericks): 45.63%
+   🛑 Prob. Victoria Visit (Atlanta Hawks): 54.37%
+------------------------------------------------------------
